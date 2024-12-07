@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Invitados</title>
+
+    <!-- Importar Google Fonts para una tipografía moderna -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Estilos globales */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+            font-weight: 600;
+        }
+
+        h2 {
+            margin-top: 10px;
+            color: #444;
+        }
+
+        /* Estilos del contenedor principal */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilos del formulario */
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .input-container input {
+            width: 48%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .input-container button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #6C63FF;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .input-container button:hover {
+            background-color: #5743E6;
+        }
+
+        /* Estilos de la lista de invitados */
+        #invitados-lista {
+            margin-top: 30px;
+        }
+
+        .invitado {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .invitado:hover {
+            transform: scale(1.02);
+        }
+
+        .invitado span {
+            font-size: 18px;
+            color: #444;
+        }
+
+        .invitado button {
+            padding: 8px 15px;
+            background-color: #ff4d4f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .invitado button:hover {
+            background-color: #ff2a2f;
+        }
+
+        /* Estilos del contador */
+        #contador-invitados {
+            font-weight: 600;
+            font-size: 18px;
+            color: #6C63FF;
+        }
+
+        /* Estilos para el mensaje de confirmación */
+        .mensaje-confirmacion {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        /* Transiciones suaves */
+        .fade {
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Lista de Invitados para la Fiesta</h1>
+
+        <div class="input-container">
+            <input type="text" id="nombre" placeholder="Nombre" required>
+            <input type="text" id="apellido" placeholder="Apellido" required>
+            <button id="agregarBtn">Agregar Invitado</button>
+        </div>
+
+        <h2>Invitados: <span id="contador-invitados">0</span></h2>
+
+        <div id="invitados-lista"></div>
+
+        <!-- Mensaje de confirmación -->
+        <div class="mensaje-confirmacion fade" id="mensajeConfirmacion">Invitado eliminado exitosamente.</div>
+    </div>
+
+    <!-- Cambiar el tipo de los scripts a "module" -->
+    <script type="module">
+        // Importar los módulos de Firebase para la versión modular
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getDatabase, ref, push, remove, onChildAdded, onChildRemoved, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAn4CEIcHMrhc1_sFgiU6jtmkP7PTawXoA",
+            authDomain: "lista-invitados-f94d1.firebaseapp.com",
+            projectId: "lista-invitados-f94d1",
+            storageBucket: "lista-invitados-f94d1.firebasestorage.app",
+            messagingSenderId: "32823595534",
+            appId: "1:32823595534:web:9956bcc7af38d3070b225f"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Función para agregar un invitado
+        function agregarInvitado() {
+            const nombre = document.getElementById('nombre').value;
+            const apellido = document.getElementById('apellido').value;
+            
+            if (nombre && apellido) {
+                const nuevoInvitado = {
+                    nombre: nombre,
+                    apellido: apellido
+                };
+
+                // Agregar el invitado a la base de datos
+                const invitadosRef = ref(database, 'invitados');
+                push(invitadosRef, nuevoInvitado);
+
+                // Limpiar los campos de entrada
+                document.getElementById('nombre').value = '';
+                document.getElementById('apellido').value = '';
+            }
+        }
+
+        // Función para eliminar un invitado
+        function eliminarInvitado(id, divInvitado) {
+            // Confirmar con el usuario antes de eliminar
+            const confirmacion = confirm("¿Estás seguro de que deseas eliminar este invitado?");
+            
+            if (confirmacion) {
+                const invitadoRef = ref(database, 'invitados/' + id);
+                remove(invitadoRef)
+                    .then(() => {
+                        // Eliminar el div del invitado en la interfaz
+                        divInvitado.remove();
+
+                        // Mostrar mensaje de confirmación
+                        const mensaje = document.getElementById('mensajeConfirmacion');
+                        mensaje.classList.add('fade');
+                        mensaje.style.display = 'block';
+
+                        setTimeout(() => {
+                            mensaje.style.display = 'none';
+                        }, 3000);
+                    })
+                    .catch(error => {
+                        console.error("Error al eliminar el invitado: ", error);
+                    });
+            }
+        }
+
+        // Escuchar los cambios en la base de datos
+        const invitadosRef = ref(database, 'invitados');
+        
+        onChildAdded(invitadosRef, function(snapshot) {
+            const invitado = snapshot.val();
+            const id = snapshot.key;
+            const listaInvitados = document.getElementById('invitados-lista');
+
+            const divInvitado = document.createElement('div');
+            divInvitado.classList.add('invitado');
+            divInvitado.innerHTML = ` 
+                <span>${invitado.nombre} ${invitado.apellido}</span>
+                <button class="eliminar-btn" data-id="${id}">Eliminar</button>
+            `;
+            listaInvitados.appendChild(divInvitado);
+
+            actualizarContador();
+        });
+
+        onChildRemoved(invitadosRef, function(snapshot) {
+            actualizarContador();
+        });
+
+        // Función para actualizar el contador de invitados
+        function actualizarContador() {
+            const invitadosRef = ref(database, 'invitados');
+            get(invitadosRef).then((snapshot) => {
+                const invitados = snapshot.val();
+                const count = invitados ? Object.keys(invitados).length : 0;
+                document.getElementById('contador-invitados').textContent = count;
+            });
+        }
+
+        // Inicializar el contador al cargar la página
+        actualizarContador();
+
+        // Asegurarse de que el botón de agregar funcione correctamente
+        document.getElementById('agregarBtn').addEventListener('click', agregarInvitado);
+
+        // Añadir el evento para eliminar invitado de manera correcta
+        document.getElementById('invitados-lista').addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('eliminar-btn')) {
+                const id = event.target.getAttribute('data-id');
+                const divInvitado = event.target.closest('.invitado');
+                eliminarInvitado(id, divInvitado);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+      
